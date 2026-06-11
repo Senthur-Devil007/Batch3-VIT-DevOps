@@ -1,4 +1,5 @@
 Hi Students Good Afternoon!
 Welcome to IBM DevOps Session.
 Today's Agenda:
-Git, DevOps.
+Git, DevOps
+Changes 

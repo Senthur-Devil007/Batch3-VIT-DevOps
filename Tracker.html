@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Activity Tracker Pro</title>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js for data analytics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* tailwind slate-50 */
+        }
+        
+        /* Custom scrollbar for the list */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <!-- Header -->
+        <header class="mb-8 flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-900 tracking-tight">Activity Tracker</h1>
+                <p class="text-slate-500 text-sm mt-1">Monitor your daily habits and analyze your time.</p>
+            </div>
+            <div class="text-right">
+                <p class="text-sm font-medium text-slate-500" id="current-date"></p>
+                <button onclick="clearAllData()" class="text-xs text-red-500 hover:text-red-700 underline mt-1 transition-colors">Clear All Data</button>
+            </div>
+        </header>
+
+        <!-- Main Grid Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column: Input Form & Recent Activities -->
+            <div class="lg:col-span-1 space-y-6">
+                
+                <!-- Add Activity Card -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h2 class="text-lg font-semibold mb-4 flex items-center">
+                        <i class="fa-solid fa-plus-circle text-indigo-500 mr-2"></i> Log Activity
+                    </h2>
+                    <form id="activity-form" class="space-y-4">
+                        <div>
+                            <label for="activity-name" class="block text-sm font-medium text-slate-700 mb-1">Activity Name</label>
+                            <input type="text" id="activity-name" required placeholder="e.g., Morning Jog" 
+                                class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                        </div>
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="activity-category" class="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                                <select id="activity-category" required 
+                                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-white">
+                                    <option value="Work">💼 Work</option>
+                                    <option value="Study">📚 Study</option>
+                                    <option value="Exercise">🏃 Exercise</option>
+                                    <option value="Leisure">🎮 Leisure</option>
+                                    <option value="Health">🥗 Health</option>
+                                    <option value="Chores">🧹 Chores</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="activity-duration" class="block text-sm font-medium text-slate-700 mb-1">Duration (mins)</label>
+                                <input type="number" id="activity-duration" required min="1" placeholder="e.g., 45" 
+                                    class="w-full px-4 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all">
+                            </div>
+                        </div>
+
+                        <button type="submit" 
+                            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg shadow-sm hover:shadow transition-all flex justify-center items-center gap-2">
+                            <span>Add to Log</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Recent Activities List -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 flex flex-col h-[400px]">
+                    <div class="p-6 border-b border-slate-100 pb-4">
+                        <h2 class="text-lg font-semibold flex items-center">
+                            <i class="fa-solid fa-list-ul text-emerald-500 mr-2"></i> Recent Log
+                        </h2>
+                    </div>
+                    <div class="p-6 pt-2 overflow-y-auto custom-scrollbar flex-grow" id="activity-list-container">
+                        <!-- Activity items will be injected here via JS -->
+                        <div class="text-center text-slate-400 py-8 italic hidden" id="empty-state">
+                            No activities logged yet.<br>Start tracking!
+                        </div>
+                        <ul id="activity-list" class="space-y-3"></ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Analytics Dashboard -->
+            <div class="lg:col-span-2 space-y-6">
+                
+                <!-- Key Metrics Cards -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center">
+                        <div class="h-12 w-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fa-regular fa-clock"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">Total Time (Today)</p>
+                            <p class="text-2xl font-bold text-slate-800" id="stat-total-today">0h 0m</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center">
+                        <div class="h-12 w-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fa-solid fa-chart-pie"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">Total Activities</p>
+                            <p class="text-2xl font-bold text-slate-800" id="stat-count">0</p>
+                        </div>
+                    </div>
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex items-center">
+                        <div class="h-12 w-12 rounded-full bg-amber-100 text-amber-600 flex items-center justify-center text-xl mr-4">
+                            <i class="fa-solid fa-trophy"></i>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">Top Category</p>
+                            <p class="text-xl font-bold text-slate-800 truncate w-24" id="stat-top-cat">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Distribution Chart -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-base font-semibold mb-4 text-slate-800">Time by Category</h3>
+                        <div class="relative h-64 w-full flex justify-center items-center">
+                            <canvas id="categoryChart"></canvas>
+                            <div id="no-data-pie" class="absolute inset-0 flex items-center justify-center text-slate-400 italic hidden">
+                                Add data to see chart
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Trend Chart -->
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                        <h3 class="text-base font-semibold mb-4 text-slate-800">Daily Trend (Last 7 Days)</h3>
+                        <div class="relative h-64 w-full">
+                            <canvas id="trendChart"></canvas>
+                             <div id="no-data-bar" class="absolute inset-0 flex items-center justify-center text-slate-400 italic hidden bg-white/80">
+                                Add data to see trend
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Detailed Analytics Table -->
+                <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+                    <h3 class="text-base font-semibold mb-4 text-slate-800">Category Breakdown (All Time)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-500">
+                            <thead class="text-xs text-slate-700 uppercase bg-slate-50 border-b">
+                                <tr>
+                                    <th scope="col" class="px-4 py-3 rounded-tl-lg">Category</th>
+                                    <th scope="col" class="px-4 py-3">Entries</th>
+                                    <th scope="col" class="px-4 py-3">Total Time</th>
+                                    <th scope="col" class="px-4 py-3 rounded-tr-lg">% of Total</th>
+                                </tr>
+                            </thead>
+                            <tbody id="analytics-table-body">
+                                <!-- Table rows generated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- State Management ---
+        let activities = [];
+        
+        // --- Chart Instances ---
+        let categoryChartInstance = null;
+        let trendChartInstance = null;
+
+        // --- Category Color Mapping ---
+        const categoryColors = {
+            'Work': '#6366f1',    // Indigo
+            'Study': '#3b82f6',   // Blue
+            'Exercise': '#10b981', // Emerald
+            'Leisure': '#f59e0b',  // Amber
+            'Health': '#ec4899',   // Pink
+            'Chores': '#64748b'    // Slate
+        };
+
+        // --- Initialization ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setCurrentDate();
+            loadData();
+            initCharts();
+            updateDashboard();
+            
+            // Event Listeners
+            document.getElementById('activity-form').addEventListener('submit', handleAddActivity);
+        });
+
+        // --- Helper Functions ---
+        function setCurrentDate() {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            document.getElementById('current-date').textContent = new Date().toLocaleDateString('en-US', options);
+        }
+
+        function formatDuration(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            if (h > 0) return `${h}h ${m}m`;
+            return `${m}m`;
+        }
+        
+        function getTodayDateString() {
+            return new Date().toISOString().split('T')[0];
+        }
+
+        // --- Data Handling ---
+        function loadData() {
+            const saved = localStorage.getItem('dailyActivitiesData');
+            if (saved) {
+                try {
+                    activities = JSON.parse(saved);
+                } catch (e) {
+                    console.error('Failed to parse saved data', e);
+                    activities = [];
+                }
+            }
+        }
+
+        function saveData() {
+            localStorage.setItem('dailyActivitiesData', JSON.stringify(activities));
+        }
+
+        function handleAddActivity(e) {
+            e.preventDefault();
+            
+            const nameInput = document.getElementById('activity-name');
+            const catInput = document.getElementById('activity-category');
+            const durInput = document.getElementById('activity-duration');
+
+            const newActivity = {
+                id: Date.now().toString(),
+                name: nameInput.value.trim(),
+                category: catInput.value,
+                duration: parseInt(durInput.value, 10),
+                timestamp: new Date().toISOString(),
+                date: getTodayDateString()
+            };
+
+            activities.unshift(newActivity); // Add to beginning of array
+            saveData();
+            
+            // Reset form
+            nameInput.value = '';
+            durInput.value = '';
+            nameInput.focus();
+
+            updateDashboard();
+        }
+
+        function deleteActivity(id) {
+            if(confirm("Remove this activity?")) {
+                activities = activities.filter(a => a.id !== id);
+                saveData();
+                updateDashboard();
+            }
+        }
+        
+        function clearAllData() {
+            if(confirm("Are you sure you want to delete ALL activity data? This cannot be undone.")) {
+                activities = [];
+                saveData();
+                updateDashboard();
+            }
+        }
+
+        // --- UI Updates ---
+        function updateDashboard() {
+            updateList();
+            updateStats();
+            updateChartsData();
+            updateAnalyticsTable();
+        }
+
+        function updateList() {
+            const listEl = document.getElementById('activity-list');
+            const emptyState = document.getElementById('empty-state');
+            
+            listEl.innerHTML = '';
+            
+            if (activities.length === 0) {
+                emptyState.classList.remove('hidden');
+                return;
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // Show max 15 recent activities in the list for performance
+            const recentActivities = activities.slice(0, 15);
+
+            recentActivities.forEach(activity => {
+                const li = document.createElement('li');
+                li.className = "bg-slate-50 rounded-xl p-3 border border-slate-100 flex justify-between items-center group transition-colors hover:bg-slate-100";
+                
+                const timeStr = new Date(activity.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const isToday = activity.date === getTodayDateString();
+                const dateLabel = isToday ? timeStr : new Date(activity.timestamp).toLocaleDateString(undefined, {month:'short', day:'numeric'});
+
+                li.innerHTML = `
+                    <div class="flex items-center overflow-hidden">
+                        <div class="w-2 h-10 rounded-full mr-3 shrink-0" style="background-color: ${categoryColors[activity.category] || '#ccc'}"></div>
+                        <div class="truncate">
+                            <p class="font-medium text-slate-800 truncate text-sm">${activity.name}</p>
+                            <p class="text-xs text-slate-500 flex items-center gap-2">
+                                <span class="bg-slate-200 px-1.5 py-0.5 rounded text-[10px] uppercase tracking-wider font-semibold">${activity.category}</span>
+                                <span>${dateLabel}</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="flex items-center shrink-0 ml-2">
+                        <span class="font-semibold text-slate-700 text-sm mr-3">${formatDuration(activity.duration)}</span>
+                        <button onclick="deleteActivity('${activity.id}')" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Delete">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+        }
+
+        function updateStats() {
+            const todayStr = getTodayDateString();
+            
+            // Total time today
+            const todayActivities = activities.filter(a => a.date === todayStr);
+            const totalMinsToday = todayActivities.reduce((sum, a) => sum + a.duration, 0);
+            document.getElementById('stat-total-today').textContent = formatDuration(totalMinsToday);
+            
+            // Total count
+            document.getElementById('stat-count').textContent = activities.length;
+
+            // Top category overall
+            const catTotals = {};
+            activities.forEach(a => {
+                catTotals[a.category] = (catTotals[a.category] || 0) + a.duration;
+            });
+            
+            let topCat = '-';
+            let maxMins = 0;
+            for (const [cat, mins] of Object.entries(catTotals)) {
+                if (mins > maxMins) {
+                    maxMins = mins;
+                    topCat = cat;
+                }
+            }
+            
+            // Remove emoji from topCat text if we want just text, or keep it. Let's keep it clean.
+            document.getElementById('stat-top-cat').textContent = topCat;
+        }
+
+        // --- Charting ---
+        function initCharts() {
+            // Global Chart defaults for cleaner look
+            Chart.defaults.font.family = "'Inter', sans-serif";
+            Chart.defaults.color = '#64748b'; // slate-500
+            
+            // 1. Category Doughnut Chart
+            const ctxCat = document.getElementById('categoryChart').getContext('2d');
+            categoryChartInstance = new Chart(ctxCat, {
+                type: 'doughnut',
+                data: { labels: [], datasets: [{ data: [], backgroundColor: [], borderWidth: 0 }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '70%',
+                    plugins: {
+                        legend: { position: 'right', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } },
+                        tooltip: {
+                            callbacks: { label: function(context) { return ` ${context.label}: ${formatDuration(context.raw)}`; } }
+                        }
+                    }
+                }
+            });
+
+            // 2. Trend Bar Chart (Last 7 Days)
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            trendChartInstance = new Chart(ctxTrend, {
+                type: 'bar',
+                data: { labels: [], datasets: [{ label: 'Minutes', data: [], backgroundColor: '#6366f1', borderRadius: 4 }] },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f1f5f9', drawBorder: false } },
+                        x: { grid: { display: false, drawBorder: false } }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: { label: function(context) { return ` Total: ${formatDuration(context.raw)}`; } }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateChartsData() {
+            const hasData = activities.length > 0;
+            
+            // Toggle Empty State overlays
+            document.getElementById('no-data-pie').classList.toggle('hidden', hasData);
+            document.getElementById('no-data-bar').classList.toggle('hidden', hasData);
+
+            if (!hasData) {
+                // Clear charts if no data
+                categoryChartInstance.data.labels = [];
+                categoryChartInstance.data.datasets[0].data = [];
+                categoryChartInstance.update();
+                
+                trendChartInstance.data.labels = [];
+                trendChartInstance.data.datasets[0].data = [];
+                trendChartInstance.update();
+                return;
+            }
+
+            // --- Process Data for Doughnut (All time distribution) ---
+            const catData = {};
+            activities.forEach(a => {
+                catData[a.category] = (catData[a.category] || 0) + a.duration;
+            });
+
+            const catLabels = Object.keys(catData);
+            const catValues = Object.values(catData);
+            const catBgColors = catLabels.map(label => categoryColors[label] || '#94a3b8');
+
+            categoryChartInstance.data.labels = catLabels;
+            categoryChartInstance.data.datasets[0].data = catValues;
+            categoryChartInstance.data.datasets[0].backgroundColor = catBgColors;
+            categoryChartInstance.update();
+
+            // --- Process Data for Bar Chart (Last 7 Days) ---
+            const trendData = {};
+            // Initialize last 7 days with 0
+            for (let i = 6; i >= 0; i--) {
+                const d = new Date();
+                d.setDate(d.getDate() - i);
+                const dateStr = d.toISOString().split('T')[0];
+                const displayLabel = d.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric' });
+                trendData[dateStr] = { label: displayLabel, minutes: 0 };
+            }
+
+            // Aggregate durations by date
+            activities.forEach(a => {
+                if (trendData[a.date]) {
+                    trendData[a.date].minutes += a.duration;
+                }
+            });
+
+            const trendLabels = Object.values(trendData).map(td => td.label);
+            const trendValues = Object.values(trendData).map(td => td.minutes);
+
+            trendChartInstance.data.labels = trendLabels;
+            trendChartInstance.data.datasets[0].data = trendValues;
+            trendChartInstance.update();
+        }
+
+        function updateAnalyticsTable() {
+            const tbody = document.getElementById('analytics-table-body');
+            tbody.innerHTML = '';
+
+            if (activities.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="px-4 py-8 text-center text-slate-400 italic">No data available yet.</td></tr>';
+                return;
+            }
+
+            const totalOverallMinutes = activities.reduce((sum, a) => sum + a.duration, 0);
+            
+            // Group by category
+            const grouped = {};
+            activities.forEach(a => {
+                if (!grouped[a.category]) {
+                    grouped[a.category] = { count: 0, minutes: 0 };
+                }
+                grouped[a.category].count += 1;
+                grouped[a.category].minutes += a.duration;
+            });
+
+            // Sort by duration descending
+            const sortedCategories = Object.keys(grouped).sort((a, b) => grouped[b].minutes - grouped[a].minutes);
+
+            sortedCategories.forEach(cat => {
+                const data = grouped[cat];
+                const percentage = totalOverallMinutes > 0 ? Math.round((data.minutes / totalOverallMinutes) * 100) : 0;
+                
+                const tr = document.createElement('tr');
+                tr.className = "bg-white border-b hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-medium text-slate-900 flex items-center">
+                        <span class="w-3 h-3 rounded-full mr-2 inline-block" style="background-color: ${categoryColors[cat] || '#ccc'}"></span>
+                        ${cat}
+                    </td>
+                    <td class="px-4 py-3">${data.count}</td>
+                    <td class="px-4 py-3 font-medium">${formatDuration(data.minutes)}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <span class="w-8 text-right mr-2">${percentage}%</span>
+                            <div class="w-full bg-slate-200 rounded-full h-1.5">
+                                <div class="h-1.5 rounded-full" style="width: ${percentage}%; background-color: ${categoryColors[cat] || '#ccc'}"></div>
+                            </div>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+    </script>
+</body>
+</html>
